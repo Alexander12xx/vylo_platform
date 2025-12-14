@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Add this line for Jitsi
+  transpilePackages: ['@jitsi/react-sdk'],
+  
   images: {
     remotePatterns: [
       {
