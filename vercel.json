@@ -9,7 +9,7 @@
     "NEXT_PUBLIC_SUPABASE_URL": "https://wduqhkmxofwoprpgsezr.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkdXFoa214b2Z3b3BycGdzZXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MjE2ODgsImV4cCI6MjA4MTI5NzY4OH0.qqP27Pzo7efIoK5NKC1sj_tuZTWbhWqK0J1C8QU8yGE",
     "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkdXFoa214b2Z3b3BycGdzZXpyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTcyMTY4OCwiZXhwIjoyMDgxMjk3Njg4fQ.jqaI2uIZngjpEcS3XlXTvCCfQFSs0yWRb4dyOBAtbU0",
-    "NEXT_PUBLIC_APP_URL": "https://rato.vercel.app"
+    "NEXT_PUBLIC_APP_URL": "https://vylo_platform.vercel.app"
   },
   "headers": [
     {
@@ -63,6 +63,7 @@
   ]
 
 }
+
 
 
 
