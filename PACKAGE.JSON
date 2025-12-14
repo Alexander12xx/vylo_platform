@@ -1,5 +1,5 @@
 {
-  "name": "vylo-platform",
+  "name": "vylo_platform",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -42,4 +42,5 @@
     "postcss": "^8",
     "typescript": "^5"
   }
+
 }
