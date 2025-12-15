@@ -3,72 +3,44 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 
-interface AuthContextType {
-  user: any | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<any>;
-  signOut: () => Promise<void>;
-}
+// Create context
+const AuthContext = createContext<any>(null);
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  signIn: async () => ({ error: null }),
-  signOut: async () => {},
-});
-
+// Custom hook
 export function useAuth() {
   return useContext(AuthContext);
 }
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-// ONLY ONE DEFAULT EXPORT - remove the duplicate at the bottom
-export default function AuthProvider({ children }: AuthProviderProps) {
+// Main component
+export default function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check active sessions and subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // Initial session check
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
     return () => subscription.unsubscribe();
   }, []);
-
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (!error) {
-      setUser(data.user);
-    }
-    return { data, error };
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-  };
 
   const value = {
     user,
     loading,
-    signIn,
-    signOut,
+    signIn: async (email: string, password: string) => {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      return { data, error };
+    },
+    signOut: async () => {
+      await supabase.auth.signOut();
+    }
   };
 
   return (
@@ -77,6 +49,3 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     </AuthContext.Provider>
   );
 }
-
-// Export the named AuthProvider (NOT as default again!)
-export { AuthProvider as AuthProviderComponent, useAuth };
