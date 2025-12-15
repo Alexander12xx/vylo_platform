@@ -1,4 +1,42 @@
 'use client';
+import { useEffect, useState } from 'react';
+import { getCurrentUser } from '@/lib/auth-utils'; // Import the helper
+
+export default function FanDashboard() {
+  const [userProfile, setUserProfile] = useState(null);
+  const [stats, setStats] = useState({ balance: 0 /* ... */ });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadFanData();
+  }, []);
+
+  const loadFanData = async () => {
+    try {
+      // 1. GET THE AUTHENTICATED USER
+      const { profile } = await getCurrentUser();
+      setUserProfile(profile);
+      
+      // 2. USE THE REAL USER ID
+      const userId = profile.id;
+      
+      const [balance, streams] = await Promise.all([
+        ALTSystem.getBalance(userId), // Now using real ID
+        LiveStreamSystem.getActiveSessions()
+      ]);
+      
+      // ... rest of your loading logic
+      
+    } catch (error) {
+      console.error('Error:', error);
+      // getCurrentUser() will have already redirected on auth failure
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+
+'use client';
 
 import { useEffect, useState } from 'react';
 import { 
