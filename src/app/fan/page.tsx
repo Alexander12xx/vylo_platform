@@ -1,58 +1,18 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { getCurrentUser } from '@/lib/auth-utils'; // Import the helper
-
-export default function FanDashboard() {
-  const [userProfile, setUserProfile] = useState(null);
-  const [stats, setStats] = useState({ balance: 0 /* ... */ });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadFanData();
-  }, []);
-
-  const loadFanData = async () => {
-    try {
-      // 1. GET THE AUTHENTICATED USER
-      const { profile } = await getCurrentUser();
-      setUserProfile(profile);
-      
-      // 2. USE THE REAL USER ID
-      const userId = profile.id;
-      
-      const [balance, streams] = await Promise.all([
-        ALTSystem.getBalance(userId), // Now using real ID
-        LiveStreamSystem.getActiveSessions()
-      ]);
-      
-      // ... rest of your loading logic
-      
-    } catch (error) {
-      console.error('Error:', error);
-      // getCurrentUser() will have already redirected on auth failure
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-
-
-
-'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Gift, Users, Heart, Clock, Star, 
   TrendingUp, Compass, Bell, Share2,
-  Video, MessageSquare, Award
+  Video, MessageSquare, Award, LogOut,
+  Settings, Wallet, Shield
 } from 'lucide-react';
-import { ALTSystem } from '@/lib/alt-coins';
-import { LiveStreamSystem } from '@/lib/live-stream';
-import WalletBalance from '@/components/fan/WalletBalance';
-import FollowingList from '@/components/fan/FollowingList';
-import RecentTips from '@/components/fan/RecentTips';
+import { supabase } from '@/lib/supabase';
 
 export default function FanDashboard() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState({
     balance: 0,
     totalTips: 0,
@@ -64,29 +24,74 @@ export default function FanDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    checkAuth();
     loadFanData();
   }, []);
 
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      router.push('/auth/login');
+      return;
+    }
+
+    // Get user profile
+    const { data: userData } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!userData || userData.role !== 'fan') {
+      if (userData?.role === 'creator') {
+        router.push('/creator');
+      } else if (userData?.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/auth/login');
+      }
+      return;
+    }
+
+    setUser(userData);
+  };
+
   const loadFanData = async () => {
     try {
-      // Mock user ID - in real app, get from auth
-      const userId = 'fan_user_123';
-      
-      const [balance, streams] = await Promise.all([
-        ALTSystem.getBalance(userId),
-        LiveStreamSystem.getActiveSessions()
-      ]);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-      // Mock data
+      // Get actual user data
+      const { data: userData } = await supabase
+        .from('users')
+        .select('alt_balance, total_spent')
+        .eq('id', session.user.id)
+        .single();
+
+      // Get following count
+      const { count: followingCount } = await supabase
+        .from('subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('fan_id', session.user.id)
+        .eq('status', 'active');
+
+      // Get active streams
+      const { data: streams } = await supabase
+        .from('live_sessions')
+        .select('*')
+        .eq('status', 'live')
+        .limit(3);
+
       setStats({
-        balance,
-        totalTips: 1250,
-        followingCount: 24,
-        watchedHours: 156,
+        balance: userData?.alt_balance || 0,
+        totalTips: userData?.total_spent || 0,
+        followingCount: followingCount || 0,
+        watchedHours: 156, // This would come from content_views table
         badges: 3
       });
 
-      setActiveStreams(streams.slice(0, 3));
+      setActiveStreams(streams || []);
 
     } catch (error) {
       console.error('Error loading fan data:', error);
@@ -95,40 +100,84 @@ export default function FanDashboard() {
     }
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/auth/login');
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading fan dashboard...</p>
+          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
-      {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
+      {/* Header with Auth */}
       <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Fan Dashboard</h1>
-              <p className="text-purple-200 mt-2">Support creators, earn rewards, and enjoy exclusive content</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                <span className="font-bold">V</span>
+              </div>
+              <span className="text-xl font-bold">VYLO</span>
             </div>
+            
             <div className="flex items-center space-x-4">
-              <button className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 flex items-center">
-                <Bell className="w-4 h-4 mr-2" />
-                Notifications
+              <button className="flex items-center space-x-2 px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30">
+                <Bell className="w-4 h-4" />
+                <span>Notifications</span>
               </button>
-              <button className="px-4 py-2 bg-white text-purple-600 rounded-lg font-semibold hover:bg-gray-100 flex items-center">
-                <Share2 className="w-4 h-4 mr-2" />
-                Invite Friends
-              </button>
+              
+              <div className="relative group">
+                <button className="flex items-center space-x-2 px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30">
+                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                    <span className="text-purple-600 font-bold">
+                      {user?.username?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  <span>{user?.username || 'User'}</span>
+                </button>
+                
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden group-hover:block">
+                  <a href="/fan/settings" className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </a>
+                  <a href="/fan/wallet" className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100">
+                    <Wallet className="w-4 h-4 mr-2" />
+                    Wallet
+                  </a>
+                  <a href="/fan/security" className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100">
+                    <Shield className="w-4 h-4 mr-2" />
+                    Security
+                  </a>
+                  <hr className="my-1" />
+                  <button 
+                    onClick={handleSignOut}
+                    className="flex items-center w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Rest of your fan dashboard UI remains the same */}
+      {/* ... existing dashboard content ... */}
+
+
+
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -393,6 +442,10 @@ export default function FanDashboard() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
     </div>
   );
 }
