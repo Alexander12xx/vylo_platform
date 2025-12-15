@@ -25,6 +25,7 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// ONLY ONE DEFAULT EXPORT - remove the duplicate at the bottom
 export default function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -77,6 +78,5 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   );
 }
 
-// Export as both default and named
-export default AuthProvider;
-export { AuthProvider, useAuth };
+// Export the named AuthProvider (NOT as default again!)
+export { AuthProvider as AuthProviderComponent, useAuth };
