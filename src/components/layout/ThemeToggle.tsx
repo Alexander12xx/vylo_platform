@@ -1,9 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { Sun, Moon } from 'lucide-react';
 
-export default function ThemeToggle() {
+// Create Theme Context
+type ThemeContextType = {
+  darkMode: boolean;
+  toggleTheme: () => void;
+};
+
+const ThemeContext = createContext<ThemeContextType>({
+  darkMode: false,
+  toggleTheme: () => {},
+});
+
+// Custom hook to use theme
+export function useTheme() {
+  return useContext(ThemeContext);
+}
+
+// Theme Provider Component
+export function ThemeProvider({ children }: { children: ReactNode }) {
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
@@ -27,6 +44,17 @@ export default function ThemeToggle() {
       localStorage.setItem('darkMode', 'false');
     }
   };
+
+  return (
+    <ThemeContext.Provider value={{ darkMode, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+// Theme Toggle Button Component (default export)
+export default function ThemeToggle() {
+  const { darkMode, toggleTheme } = useTheme();
 
   return (
     <button
