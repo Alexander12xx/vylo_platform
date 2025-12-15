@@ -19,4 +19,13 @@ export default function LiveMonitoring({ sessions = [] }: { sessions?: any[] }) 
                 }`}>
                   {session.status || 'unknown'}
                 </span>
-              </
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400">No active streams</p>
+        )}
+      </div>
+    </div>
+  );
+}
