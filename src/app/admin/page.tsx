@@ -1,41 +1,83 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { getCurrentUser } from '@/lib/auth-utils'; // Import the helper
 
-export default function FanDashboard() {
-  const [userProfile, setUserProfile] = useState(null);
-  const [stats, setStats] = useState({ balance: 0 /* ... */ });
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { 
+  Users, DollarSign, FileText, Video, 
+  AlertTriangle, Settings, BarChart,
+  Shield, CheckCircle, XCircle, RefreshCw
+} from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+
+export default function AdminDashboard() {
+  const router = useRouter();
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalCreators: 0,
+    activeStreams: 0,
+    pendingWithdrawals: 0,
+    platformBalance: 0,
+    todayEarnings: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadFanData();
+    checkAdminAccess();
+    loadAdminData();
   }, []);
 
-  const loadFanData = async () => {
+  const checkAdminAccess = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      router.push('/auth/login');
+      return;
+    }
+
+    const { data: user } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!user || user.role !== 'admin') {
+      router.push('/fan');
+      return;
+    }
+  };
+
+  const loadAdminData = async () => {
     try {
-      // 1. GET THE AUTHENTICATED USER
-      const { profile } = await getCurrentUser();
-      setUserProfile(profile);
-      
-      // 2. USE THE REAL USER ID
-      const userId = profile.id;
-      
-      const [balance, streams] = await Promise.all([
-        ALTSystem.getBalance(userId), // Now using real ID
-        LiveStreamSystem.getActiveSessions()
+      const [
+        { count: totalUsers },
+        { count: totalCreators },
+        { count: activeStreams },
+        { count: pendingWithdrawals },
+      ] = await Promise.all([
+        supabase.from('users').select('*', { count: 'exact', head: true }),
+        supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'creator'),
+        supabase.from('live_sessions').select('*', { count: 'exact', head: true }).eq('status', 'live'),
+        supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
       ]);
-      
-      // ... rest of your loading logic
-      
+
+      setStats({
+        totalUsers: totalUsers || 0,
+        totalCreators: totalCreators || 0,
+        activeStreams: activeStreams || 0,
+        pendingWithdrawals: pendingWithdrawals || 0,
+        platformBalance: 100000, // Calculate from transactions
+        todayEarnings: 5000,
+      });
+
     } catch (error) {
-      console.error('Error:', error);
-      // getCurrentUser() will have already redirected on auth failure
+      console.error('Error loading admin data:', error);
     } finally {
       setLoading(false);
     }
   };
-  
- 
+
+  // ... rest of admin dashboard UI
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -120,5 +162,13 @@ export default function AdminDashboard() {
       </div>
     </div>
   );
-}
 
+
+
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* Admin Dashboard UI */}
+    </div>
+  );
+}
