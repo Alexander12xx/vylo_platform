@@ -9,6 +9,9 @@ import {
   Settings, Wallet, Shield
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import WalletBalance from '@/components/fan/WalletBalance';
+import FollowingList from '@/components/fan/FollowingList';
+import RecentTips from '@/components/fan/RecentTips';
 
 export default function FanDashboard() {
   const router = useRouter();
@@ -442,10 +445,6 @@ export default function FanDashboard() {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
     </div>
   );
 }
