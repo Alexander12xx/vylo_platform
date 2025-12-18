@@ -65,15 +65,47 @@ export default function CreatorDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    checkAuth();
     loadCreatorData();
   }, []);
 
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      router.push('/auth/login');
+      return;
+    }
+
+    // Get user role to ensure they have access to this page
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!userData || userData.role !== 'creator') {
+      if (userData?.role === 'fan') {
+        router.push('/fan');
+      } else if (userData?.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/auth/login');
+      }
+      return;
+    }
+  };
+
   const loadCreatorData = async () => {
     try {
-      const user = await supabase.auth.getUser();
-      if (!user.data.user) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        router.push('/auth/login');
+        return;
+      }
 
-      const userId = user.data.user.id;
+      const userId = session.user.id;
 
       // Load creator stats
       const [balance, streams] = await Promise.all([

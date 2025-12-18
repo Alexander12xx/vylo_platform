@@ -52,11 +52,39 @@ export const LiveStreamSystem = {
     return data || [];
   },
 
+  async getLiveSession(sessionId: string) {
+    const { data, error } = await supabase
+      .from('live_sessions')
+      .select(`
+        *,
+        creator:users(username, profile_image)
+      `)
+      .eq('id', sessionId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getLiveSessions() {
+    const { data, error } = await supabase
+      .from('live_sessions')
+      .select(`
+        *,
+        creator:users(username, profile_image)
+      `)
+      .in('status', ['live', 'scheduled'])
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
   async joinSession(sessionId: string, userId: string) {
     // Check if user has access
     const { data: session } = await supabase
       .from('live_sessions')
-      .select('alt_price, subscription_required')
+      .select('alt_price, subscription_required, creator_id')
       .eq('id', sessionId)
       .single();
 
@@ -73,6 +101,28 @@ export const LiveStreamSystem = {
       if (!user || user.alt_balance < session.alt_price) {
         throw new Error('Insufficient ALT balance');
       }
+
+      // Deduct ALT from user's balance
+      const { error: balanceError } = await supabase
+        .from('users')
+        .update({ 
+          alt_balance: user.alt_balance - session.alt_price 
+        })
+        .eq('id', userId);
+
+      if (balanceError) throw balanceError;
+
+      // Record transaction
+      await supabase
+        .from('alt_transactions')
+        .insert([{
+          user_id: userId,
+          related_user_id: session.creator_id,
+          type: 'spend',
+          amount: session.alt_price,
+          description: 'Live stream access fee',
+          metadata: { session_id: sessionId }
+        }]);
     }
 
     // Record viewer
