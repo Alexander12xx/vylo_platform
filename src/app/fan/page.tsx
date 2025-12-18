@@ -36,10 +36,10 @@ export default function FanDashboard() {
       return;
     }
 
-    // Get user profile
+    // Get user role to ensure they have access to this page
     const { data: userData } = await supabase
       .from('users')
-      .select('*')
+      .select('role')
       .eq('id', session.user.id)
       .single();
 
@@ -53,21 +53,27 @@ export default function FanDashboard() {
       }
       return;
     }
-
-    setUser(userData);
   };
 
   const loadFanData = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      
+      if (!session) {
+        router.push('/auth/login');
+        return;
+      }
 
-      // Get actual user data
+      // Get user profile
       const { data: userData } = await supabase
         .from('users')
-        .select('alt_balance, total_spent')
+        .select('*')
         .eq('id', session.user.id)
         .single();
+
+      if (userData) {
+        setUser(userData);
+      }
 
       // Get following count
       const { count: followingCount } = await supabase

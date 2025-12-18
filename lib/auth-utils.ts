@@ -22,3 +22,20 @@ export async function getCurrentUser() {
   
   return { session, profile };
 }
+
+export async function requireAuth(requiredRole?: 'fan' | 'creator' | 'admin') {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) redirect('/auth/login');
+  
+  const { data: user } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', session.user.id)
+    .single();
+  
+  if (requiredRole && user.role !== requiredRole) {
+    redirect(`/${user.role}`);
+  }
+  
+  return { session, user };
+}
